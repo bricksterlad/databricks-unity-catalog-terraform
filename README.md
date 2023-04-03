@@ -1,12 +1,10 @@
 # Unity Catalog Terraform deployment
 
-This repository contains Terraform code used to Deploy Untiy Catalog resources, together with the CI/CD pipeline that automate resources provisioning in addition to validating the pull request changes before applying them & using approvals before deploying changes to production system.  Please note that the existing Terraform code was deployed in Microsoft Azure Cloud
-In this repo, you find the Terraform resources used to create Unity Catalog metastore, Databricks service principals, assign principals to workspaces, Create Unity Catalog resources like catalogs and schemas and grant access to principals to these UC resources.
+This repository contains Terraform code used to Deploy Untiy Catalog resources, together with the CI/CD pipeline that automate resources provisioning in addition to validating the pull request changes before applying them & using approvals before deploying changes to production system.  Please note that the existing Terraform code was deployed in Microsoft Azure Cloud.
+In this repo, among others you will find the Terraform resources used to create Unity Catalog metastore, Databricks service principals, assign principals to workspaces, Create Unity Catalog resources like catalogs and schemas and grant access to principals to these UC resources.
 ## Workflow
 
-The general workflow looks as following:
-
-![Workflow](images/terraform-databricks-pipeline-azure-devops.png)
+The general workflow contains the following steps:
 
 * Changes to the code in this directory or in the module are made in a separate Git branch & when changes are ready, a pull request is opened
 * Upon opening of the pull request, the build pipeline is triggered, and following operations are performed:
@@ -15,8 +13,7 @@ The general workflow looks as following:
   * Performs check of the Terraform code using [terraform validate](https://www.terraform.io/cli/commands/validate).
   * Executes `terraform plan` to get the list changes that will be made during deployment.
 
-[//]: # (    * The pull request is updated with the result from `terraform plan`)
-* If the build pipeline is executed without errors, results of `terraform plan` and the code should be reviewed by reviewer, and merged into the `main` branch.
+* If the build pipeline is executed without errors, the code should be reviewed by reviewer, and merged into the `main` branch.
 * When code is merged into the `main` branch, the release pipeline is triggered, and after a manual approval, changes are applied to the deployment using the `terraform apply` command.
 
 ### Structure of terraform templates
@@ -53,7 +50,7 @@ We also need to define auxiliary objects in the Azure DevOps project that will b
 
 ### Configuring the variable group
 
-We need to configure a variable group with the name `TerraformProdDeploy`.  It should contain following variables:
+We need to configure a variable group that should contain the following variables:
 
 * `BACKEND_RG_NAME` - name of resource group containing storage account.
 * `BACKEND_SA_NAME` - name of the storage account.
@@ -67,10 +64,12 @@ We need to configure a variable group with the name `TerraformProdDeploy`.  It s
 Create a build pipeline by navigating to the "Pipelines" section of your Azure DevOps project, and click "New pipeline" that will walk you through configuration:
 
 * Select Git repository with the code
-* Select the "Existing Azure Pipelines YAML file" option, and select `/azure-pipelines.yml` from the dropdown
+* Select the "Existing Azure Pipelines YAML file" option, and select `/azure-pipeline-<env>.yml` from the dropdown
 * Select "Save" from the dropdown in the "Run" button
+* In Azure Devops repo, create new [branch policy](https://learn.microsoft.com/en-us/azure/devops/repos/git/branch-policies) in the `main` branch in order to prevent direct push to the main branch and to trigger the build pipeline when the selected paths get modified
 
 This will create a new build pipeline that will be triggered on the pull request to the `main` branch & validate proposed changes.
+
 
 
 ### Configuring the release pipeline
@@ -82,10 +81,7 @@ We need to define two things:
 1. Artifact that will be used to trigger the release pipeline.
 1. Stage that will be executed as part of the release.
 
-At the end your release pipeline should look as following (don't forget to press "Save" after configuration is done):
-
-![Release pipeline](images/azdo-release-pipeline.png)
-
+Don't forget to press "Save" after configuration is done
 
 #### Configuring release artifact
 
@@ -156,8 +152,7 @@ brew install hashicorp/tap/terraform
   terraform apply -input=false -no-color -auto-approve
   ```
 
-
 The final step of the configuration for release pipeline is configuration of approvals.  Click on the "⚡", select the "After release" trigger, and then toggle the "Pre-deployment approvals" button. Put names of the approvers into the "Approvers" box - they will get notification when release is triggered, and they will need to approve deployment of the changes.
 
 #### Trigger release pipeline on every tag creation
-* The yaml file azure-release-pipeline creates a release pipeline that gets triggered at every tag creation. It deploys Unity catalog resources in all environments
+* The yaml file azure-release-pipeline can also be used to create a release pipeline that gets triggered automatically at every tag creation. It deploys Unity catalog resources in all environments
