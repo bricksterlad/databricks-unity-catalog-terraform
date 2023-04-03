@@ -1,4 +1,4 @@
-# Unity Catalog Terraform deployment
+# Unity Catalog Terraform deployment in Azure
 
 This repository contains Terraform code used to Deploy Untiy Catalog resources, together with the CI/CD pipeline that automate resources provisioning in addition to validating the pull request changes before applying them & using approvals before deploying changes to production system.  Please note that the existing Terraform code was deployed in Microsoft Azure Cloud.
 In this repo, among others you will find the Terraform resources used to create Unity Catalog metastore, Databricks service principals, assign principals to workspaces, Create Unity Catalog resources like catalogs and schemas and grant access to principals to these UC resources.
