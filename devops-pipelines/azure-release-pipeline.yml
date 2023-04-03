@@ -1,0 +1,175 @@
+#test direct push
+trigger:
+  batch: True
+  branches:
+    exclude:
+      - '*'
+  tags:
+    include:
+      - 'v*'
+
+pool:
+  vmImage: "ubuntu-latest"
+
+variables:
+  - group: terraform-unity-catalog-dev
+  - group: terraform-unity-catalog-qa
+  - group: terraform-unity-catalog-prod
+
+
+stages:
+  - stage: DEV
+    variables:
+      - group: terraform-unity-catalog-dev
+    jobs:
+      - job: Deploy_DEV
+        displayName: Deploy DEV
+        steps:
+
+          - checkout: self
+
+          - script: |
+              eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+              brew tap hashicorp/tap
+              brew install hashicorp/tap/terraform
+            displayName: 'Install Terraform'
+
+          - task: AzureCLI@2
+            displayName: 'Extract information from Azure CLI'
+            inputs:
+              scriptType: bash
+              scriptLocation: inlineScript
+              azureSubscription: $(SERVICE_CONNECTION_NAME)
+              addSpnToEnvironment: true
+              inlineScript: |
+                subscription_id=$(az account list --query "[?isDefault].id"|jq -r '.[0]')
+                echo "##vso[task.setvariable variable=ARM_CLIENT_ID]${servicePrincipalId}"
+                echo "##vso[task.setvariable variable=ARM_CLIENT_SECRET;issecret=true]${servicePrincipalKey}"
+                echo "##vso[task.setvariable variable=ARM_TENANT_ID]${tenantId}"
+                echo "##vso[task.setvariable variable=ARM_SUBSCRIPTION_ID]${subscription_id}"
+
+          - script: |
+              terraform init -input=false -no-color \
+              -backend-config="subscription_id=$BACKEND_SUBSCRIPTION_ID" \
+              -backend-config="resource_group_name=$BACKEND_RG_NAME" \
+              -backend-config="storage_account_name=$BACKEND_SA_NAME" \
+              -backend-config="container_name=$BACKEND_CONTAINER_NAME" \
+              -backend-config="key=$BACKEND_KEY"
+            displayName: 'Terraform init'
+            workingDirectory: dev/
+            enabled: 'true'
+            env:
+              ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+
+          - script: |
+              terraform apply -lock=false -input=false -no-color -auto-approve
+            displayName: 'Terraform apply'
+            name: 'apply'
+            workingDirectory: dev/
+            enabled: 'true'
+            env:
+              ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+
+  - stage: QA
+    variables:
+      - group: terraform-unity-catalog-qa
+    jobs:
+      - job: Deploy_QA
+        displayName: Deploy QA
+        steps:
+
+          - checkout: self
+
+          - script: |
+              eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+              brew tap hashicorp/tap
+              brew install hashicorp/tap/terraform
+            displayName: 'Install Terraform'
+
+          - task: AzureCLI@2
+            displayName: 'Extract information from Azure CLI'
+            inputs:
+              scriptType: bash
+              scriptLocation: inlineScript
+              azureSubscription: $(SERVICE_CONNECTION_NAME)
+              addSpnToEnvironment: true
+              inlineScript: |
+                subscription_id=$(az account list --query "[?isDefault].id"|jq -r '.[0]')
+                echo "##vso[task.setvariable variable=ARM_CLIENT_ID]${servicePrincipalId}"
+                echo "##vso[task.setvariable variable=ARM_CLIENT_SECRET;issecret=true]${servicePrincipalKey}"
+                echo "##vso[task.setvariable variable=ARM_TENANT_ID]${tenantId}"
+                echo "##vso[task.setvariable variable=ARM_SUBSCRIPTION_ID]${subscription_id}"
+
+          - script: |
+              terraform init -input=false -no-color \
+              -backend-config="subscription_id=$BACKEND_SUBSCRIPTION_ID" \
+              -backend-config="resource_group_name=$BACKEND_RG_NAME" \
+              -backend-config="storage_account_name=$BACKEND_SA_NAME" \
+              -backend-config="container_name=$BACKEND_CONTAINER_NAME" \
+              -backend-config="key=$BACKEND_KEY"
+            displayName: 'Terraform init'
+            workingDirectory: qa/
+            enabled: 'true'
+            env:
+              ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+
+          - script: |
+              terraform apply -lock=false -input=false -no-color -auto-approve
+            displayName: 'Terraform apply'
+            name: 'apply'
+            workingDirectory: qa/
+            enabled: 'true'
+            env:
+              ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+
+  - stage: PROD
+    variables:
+      - group: terraform-unity-catalog-prod
+    jobs:
+      - job: Deploy_PROD
+        displayName: Deploy PROD
+        steps:
+
+          - checkout: self
+
+          - script: |
+              eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+              brew tap hashicorp/tap
+              brew install hashicorp/tap/terraform
+            displayName: 'Install Terraform'
+
+          - task: AzureCLI@2
+            displayName: 'Extract information from Azure CLI'
+            inputs:
+              scriptType: bash
+              scriptLocation: inlineScript
+              azureSubscription: $(SERVICE_CONNECTION_NAME)
+              addSpnToEnvironment: true
+              inlineScript: |
+                subscription_id=$(az account list --query "[?isDefault].id"|jq -r '.[0]')
+                echo "##vso[task.setvariable variable=ARM_CLIENT_ID]${servicePrincipalId}"
+                echo "##vso[task.setvariable variable=ARM_CLIENT_SECRET;issecret=true]${servicePrincipalKey}"
+                echo "##vso[task.setvariable variable=ARM_TENANT_ID]${tenantId}"
+                echo "##vso[task.setvariable variable=ARM_SUBSCRIPTION_ID]${subscription_id}"
+
+          - script: |
+              terraform init -input=false -no-color \
+              -backend-config="subscription_id=$BACKEND_SUBSCRIPTION_ID" \
+              -backend-config="resource_group_name=$BACKEND_RG_NAME" \
+              -backend-config="storage_account_name=$BACKEND_SA_NAME" \
+              -backend-config="container_name=$BACKEND_CONTAINER_NAME" \
+              -backend-config="key=$BACKEND_KEY"
+            displayName: 'Terraform init'
+            workingDirectory: prod/
+            enabled: 'true'
+            env:
+              ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+
+          - script: |
+              terraform apply -lock=false -input=false -no-color -auto-approve
+            displayName: 'Terraform apply'
+            name: 'apply'
+            workingDirectory: prod/
+            enabled: 'true'
+            env:
+              ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
